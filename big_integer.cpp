@@ -1,6 +1,5 @@
 #include "big_integer.h"
 #include <algorithm>
-#include <vector>
 
 const ui big_integer::kLogBase = 32;
 const ull big_integer::kBase = (ull)1 << kLogBase;
@@ -21,6 +20,18 @@ big_integer::big_integer(ui a) {
         data.push_back(0);
     } else if (a > 0) {
         data.push_back((unsigned)a);
+    }
+}
+
+big_integer::big_integer(int a) {
+    sign = false;
+    if (a > 0) {
+        data.push_back((unsigned)a);
+    } if (a == 0) {
+        data.push_back(0);
+    } else {
+        data.push_back((unsigned)-a);
+        sign = true;
     }
 }
 
@@ -87,15 +98,15 @@ big_integer::big_integer(std::string const &str) {
     while (s.length() % 9 != 0) {
         s = '0' + s;
     }
-    int k = s.length() / 9;
-    for (int i = 0; i < k; ++i) {
+    long k = s.length() / 9;
+    for (long i = 0; i < k; ++i) {
         data.push_back(0);
         for (int j = 8; j >= 0; --j) {
             data[i] += ((int((s[i * 9 + j])) - int('0')) * BASE_Degree[8 - j]);
         }
     }
     for (int i = 0; i < (int)data.size() / 2; ++i) {
-        long long a = data[i];
+        ui a = data[i];
         data[i] = data[(int)data.size() - i - 1];
         data[data.size() - i - 1] = a;
     }
@@ -106,43 +117,6 @@ big_integer &big_integer::operator=(big_integer const &other) {
     data = other.data;
     sign = other.sign;
     return *this;
-}
-
-bool big_integer::operator<(const big_integer &right) const {
-    if (this->sign) {
-        if (right.sign) return ((-right) < (-*(this)));
-        else return true;
-    } else if (right.sign) return false;
-    else {
-        if ((int)this->data.size() != (int)right.data.size()) {
-            return (int)this->data.size() < (int)right.data.size();
-        } else {
-            for (int i = (int)this->data.size() - 1; i >= 0; --i) {
-                if (this->data[i] != right.data[i]) return this->data[i] < right.data[i];
-            }
-            return false;
-        }
-    }
-}
-
-bool big_integer::operator>(const big_integer &right) const {
-    return (right < *this);
-}
-
-bool big_integer::operator==(const big_integer &right) const {
-    return (!(*this < right) && !(*this > right));
-}
-
-bool big_integer::operator<=(const big_integer &right) const {
-    return (*this > right);
-}
-
-bool big_integer::operator>=(const big_integer &right) const {
-    return !(*this < right);
-}
-
-bool big_integer::operator!=(const big_integer &right) const {
-    return !(*this == right);
 }
 
 big_integer big_integer::operator+() const {
@@ -188,7 +162,7 @@ big_integer& big_integer::operator+=(big_integer const &rhs) {
     size_t oldSize = data.size();
     data.resize(len);
     std::fill(data.begin() + oldSize, data.begin() + len, 0);
-    unsigned long long c = 0;
+    unsigned long c = 0;
     for (size_t i = 0; i < len; ++i) {
         data[i] = data[i] + rhs.data[i] + c;
         c = (data[i] + (unsigned long long)rhs.data[i]) / kBase;
@@ -208,12 +182,10 @@ big_integer &big_integer::operator-=(big_integer const &rhs) {
         return *this += -rhs;
     }
     size_t len = std::max(data.size(), rhs.data.size());
-    size_t oldSize = data.size();
     data.resize(len);
     if (*this < rhs) {
         return *this = -(rhs - *this);
     }
-    unsigned long long c = 0;
     for (size_t i = 0; i < len; ++i) {
         if (data[i] > rhs.data[i]) {
             data[i] -= rhs.data[i];
@@ -241,10 +213,6 @@ big_integer &big_integer::operator*=(big_integer const &rhs) {
     res.make_right();
     *this = res;
     return  *this;
-}
-
-ui getNumber(std::vector<ui> const &a, size_t const &ind) {
-    return ind < a.size() ? a[ind] : (ui)0;
 }
 
 std::pair<big_integer, ui> sDiv(big_integer const & a, ui const & b)
@@ -277,16 +245,16 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
         cur.data[0] = p.second;
         return;
     }
-    big_integer u = a;
+    big_integer u(a.data, a.sign);
     ull n = a.data.size(), m = u.data.size() - b.data.size();
     ull scale = big_integer::kBase / (b.data[n - 1] + 1); //нормализация
     if (scale > 1) {   //нормализация
         u *= scale;
         b *= scale;
     }
-    ull uJ, vJ, i;            //vJ - тек сдвиг B относ U(при вычитании), инд очередной цифры частного
+    ull uJ, vJ, i;                  //vJ - тек сдвиг B относ U(при вычитании), инд очередной цифры частного
     long temp1, temp2, temp = 0;   //uJ - тек цифра U
-    ull qGuess, r;             //догадка для частного и остаток
+    ull qGuess, r;                 //догадка для частного и остаток
     long borrow, carry; //переносы
     for (vJ = m, uJ = n + vJ; vJ >= 0; --vJ, --uJ) {
         qGuess = (u.data[uJ] * big_integer::kBase + u.data[uJ - 1]) / b.data[n - 1];
@@ -329,7 +297,7 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
             carry = 0;
             for (i = 0; i < n; ++i) {
                 temp = uShift[i] + b.data[i] + carry;
-                if (temp >= big_integer::kBase) {
+                if ((unsigned)temp >= big_integer::kBase) {
                     uShift[i] = temp - big_integer::kBase;
                     carry = 1;
                 } else {
@@ -353,13 +321,15 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
 big_integer &big_integer::operator/=(big_integer const &rhs) {
     big_integer b = rhs, res, cur;
     myDiv(*this, b, res, cur);
-    return res;
+    *this = res;
+    return *this;
 }
 
 big_integer &big_integer::operator%=(big_integer const &rhs) {
     big_integer b = rhs, res, cur;
     myDiv(*this, b, res, cur);
-    return cur;
+    *this = cur;
+    return *this;
 }
 
 big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std::function<ui(ui, ui)> func) {
@@ -544,10 +514,39 @@ std::istream &operator>>(std::istream &s, big_integer &a) {
     return s;
 }
 
-bool operator==(big_integer& a, const big_integer& b) {
-    return (a == b);
+bool operator==(big_integer const & a, big_integer const & b) {
+    return (!(a < b) && !(a > b));
 }
 
-bool operator<=(big_integer& a, const big_integer& b) {
+bool operator!=(big_integer const & a, big_integer const & b) {
+    return !(a == b);
+}
+
+bool operator<(big_integer const & a, big_integer const & b) {
+    if (a.sign) {
+        if (b.sign) return ((-b) < (-a));
+        else return true;
+    } else if (b.sign) return false;
+    else {
+        if ((int)a.data.size() != (int)b.data.size()) {
+            return (int)a.data.size() < (int)b.data.size();
+        } else {
+            for (int i = (int)a.data.size() - 1; i >= 0; --i) {
+                if (a.data[i] != b.data[i]) return a.data[i] < b.data[i];
+            }
+            return false;
+        }
+    }
+}
+
+bool operator>(big_integer const & a, big_integer const & b) {
+    return (a > b);
+}
+
+bool operator<=(big_integer const & a, big_integer const & b) {
     return (a <= b);
+}
+
+bool operator>=(big_integer const & a, big_integer const & b) {
+    return (a >= b);
 }
