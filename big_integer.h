@@ -19,6 +19,7 @@ public:
     big_integer(big_integer const &other);
     big_integer(std::vector<ui> const &obj, bool _sign);
     big_integer(ui a);
+    big_integer(int a);
     explicit big_integer(std::string const &str);
     //~big_integer();
 
@@ -44,12 +45,12 @@ public:
     big_integer &operator--();
     const big_integer operator--(int);
 
-    bool operator==(big_integer const &right) const;
-    bool operator!=(big_integer const &right) const;
-    bool operator<(big_integer const &right) const;
-    bool operator>(big_integer const &right) const;
-    bool operator<=(big_integer const &right) const;
-    bool operator>=(big_integer const &right) const;
+    friend bool operator==(big_integer const& a, big_integer const& b);
+    friend bool operator!=(big_integer const& a, big_integer const& b);
+    friend bool operator<(big_integer const& a, big_integer const& b);
+    friend bool operator>(big_integer const& a, big_integer const& b);
+    friend bool operator<=(big_integer const& a, big_integer const& b);
+    friend bool operator>=(big_integer const& a, big_integer const& b);
 
     std::string to_string() const;
     friend std::pair<big_integer, ui> sDiv(big_integer const &a, ui const &b);
@@ -63,7 +64,6 @@ private:
 
     static const ui kLogBase;
     static const ull kBase;
-    static const ui maxNumber;
 };
 
 big_integer operator+(big_integer a, big_integer const &b);
@@ -77,14 +77,12 @@ big_integer operator^(big_integer a, big_integer const &b);
 big_integer operator<<(big_integer a, int b);
 big_integer operator>>(big_integer a, int b);
 
-/*
-bool operator==(big_integer &a, big_integer const &b);
-bool operator!=(big_integer &a, big_integer const &b);
-bool operator<(big_integer  &a, big_integer const &b);
-bool operator>(big_integer  &a, big_integer const &b);
-bool operator<=(big_integer &a, big_integer const &b);
-bool operator>=(big_integer &a, big_integer const &b);
-*/
+bool operator==(big_integer const &a, big_integer const &b);
+bool operator!=(big_integer const &a, big_integer const &b);
+bool operator<(big_integer const  &a, big_integer const &b);
+bool operator>(big_integer const  &a, big_integer const &b);
+bool operator<=(big_integer const &a, big_integer const &b);
+bool operator>=(big_integer const &a, big_integer const &b);
 
 std::string to_string(big_integer const &a);
 std::ostream &operator<<(std::ostream &s, big_integer const &a);
