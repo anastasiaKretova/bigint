@@ -16,6 +16,7 @@ big_integer::big_integer(big_integer const &other) {
 
 big_integer::big_integer(ui a) {
     sign = false;
+    data.resize(0);
     if (a == 0) {
         data.push_back(0);
     } else if (a > 0) {
@@ -25,12 +26,13 @@ big_integer::big_integer(ui a) {
 
 big_integer::big_integer(int a) {
     sign = false;
+    data.resize(0);
     if (a > 0) {
         data.push_back((unsigned)a);
     } if (a == 0) {
         data.push_back(0);
-    } else {
-        data.push_back((unsigned)-a);
+    } if (a < 0) {
+        data.push_back((unsigned)(-a));
         sign = true;
     }
 }
@@ -163,10 +165,11 @@ big_integer& big_integer::operator+=(big_integer const &rhs) {
     data.resize(len);
     std::fill(data.begin() + oldSize, data.begin() + len, 0);
     unsigned long c = 0;
-    for (size_t i = 0; i < len; ++i) {
+    for (size_t i = 0; i < std::min(len, rhs.data.size()); ++i) {
         data[i] = data[i] + rhs.data[i] + c;
         c = (data[i] + (unsigned long long)rhs.data[i]) / kBase;
     }
+    data[std::min(len, rhs.data.size())] += c;
     make_right();
     return *this;
 }
@@ -540,13 +543,13 @@ bool operator<(big_integer const & a, big_integer const & b) {
 }
 
 bool operator>(big_integer const & a, big_integer const & b) {
-    return (a > b);
+    return (b < a);
 }
 
 bool operator<=(big_integer const & a, big_integer const & b) {
-    return (a <= b);
+    return (!(a > b));
 }
 
 bool operator>=(big_integer const & a, big_integer const & b) {
-    return (a >= b);
+    return (b <= a);
 }
