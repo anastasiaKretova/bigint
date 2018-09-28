@@ -19,8 +19,8 @@ big_integer::big_integer(ui a) {
     data.resize(0);
     if (a == 0) {
         data.push_back(0);
-    } else if (a > 0) {
-        data.push_back((unsigned)a);
+    } else {
+        data.push_back(a);
     }
 }
 
@@ -157,7 +157,7 @@ big_integer& big_integer::operator+=(big_integer const &rhs) {
             *this = (rhs - -*this);
             return *this;
         } else {
-            return (*this -= rhs);
+            return (*this -= -rhs);
         }
     }
     size_t len = std::max(data.size(), rhs.data.size()) + 1;
@@ -184,12 +184,10 @@ big_integer &big_integer::operator-=(big_integer const &rhs) {
     if (sign != rhs.sign) {
         return *this += -rhs;
     }
-    size_t len = std::max(data.size(), rhs.data.size());
-    data.resize(len);
-    if (*this < rhs) {
+    if (!sign && *this < rhs || sign && *this > rhs) {
         return *this = -(rhs - *this);
     }
-    for (size_t i = 0; i < len; ++i) {
+    for (size_t i = 0; i < data.size(); ++i) {
         if (data[i] > rhs.data[i]) {
             data[i] -= rhs.data[i];
         } else {
