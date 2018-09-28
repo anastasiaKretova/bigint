@@ -236,10 +236,23 @@ std::pair<big_integer, ui> sDiv(big_integer const & a, ui const & b)
 }
 
 void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur) {
+    if (a.sign && b.sign) {
+        big_integer d = -b;
+        myDiv(-a, d, res, cur);
+        return;
+    }
     if (a.sign) {
         myDiv(-a, b, res, cur);
         if (res == 0) cur.sign = true;
         else res.sign = true;
+        return;
+    }
+    if (b.sign) {
+        big_integer d = -b;
+        myDiv(a, d, res, cur);
+        if (res == 0) cur.sign = true;
+        else res.sign = true;
+        return;
     }
     if (a.data.size() < b.data.size()) {
         res = 0;
