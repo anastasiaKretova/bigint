@@ -32,7 +32,12 @@ big_integer::big_integer(int a) {
     } if (a == 0) {
         data.push_back(0);
     } if (a < 0) {
+        //if (a == std::numeric_limits<int>::min()) {
+        //    data.push_back((unsigned)(-a + 1));
+        //    data.push_back((unsigned)1);
+        //} else {
         data.push_back((unsigned)(-a));
+        //}
         sign = true;
     }
 }
@@ -203,21 +208,23 @@ big_integer &big_integer::operator-=(big_integer const &rhs) {
     return *this;
 }
 
+
 big_integer &big_integer::operator*=(big_integer const &rhs) {
-	big_integer res;
-	res.data.resize(data.size() + rhs.data.size());
-	for (size_t i = 0; i < data.size(); ++i) {
-		for (int j = 0, c = 0; j < rhs.data.size() || c; j++) {
-			ui temp = res.data[i + j] + data[i] * 1ll * (j < rhs.data.size() ? rhs.data[j] : 0) + c;
-			res.data[i + j] = (temp % kBase);
-			c = temp / kBase;
-		}
-	}
-	res.sign = sign ^ rhs.sign;
-	res.make_right();
-	*this = res;
-	return  *this;
+    big_integer res;
+    res.data.resize(data.size() + rhs.data.size());
+    for (size_t i = 0; i < data.size(); ++i) {
+        for (int j = 0, c = 0; j < rhs.data.size() || c; j++) {
+            ui temp = res.data[i + j] + data[i] * 1ll * (j < rhs.data.size() ? rhs.data[j] : 0) + c;
+            res.data[i + j] = (temp % kBase);
+            c = temp / kBase;
+        }
+    }
+    res.sign = sign ^ rhs.sign;
+    res.make_right();
+    *this = res;
+    return  *this;
 }
+
 
 std::pair<big_integer, ui> sDiv(big_integer const & a, ui const & b)
 //std::pair<big_integer, ui> sDiv(big_integer const &a, unsigned int const &b) 
@@ -269,6 +276,7 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
         return;
     }
     big_integer u(a.data, a.sign);
+    u.data.resize(a.data.size() + 1);
     ull n = a.data.size(), m = u.data.size() - b.data.size();
     ull scale = big_integer::kBase / (b.data[n - 1] + 1); //нормализация
     if (scale > 1) {   //нормализация
@@ -357,6 +365,13 @@ big_integer &big_integer::operator%=(big_integer const &rhs) {
 
 big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std::function<ui(ui, ui)> func) {
     size_t len = std::max(data.size(), rhs.data.size());
+    if (sign) {
+        *this = ~*this + 1;
+    }
+    big_integer c_rhs = rhs;
+    if (rhs.sign) {
+        c_rhs = ~rhs + 1;
+    }
     ui emptyCell = getEmptyCell();
     size_t oldSize = data.size();
     data.resize(len);
@@ -365,9 +380,15 @@ big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std:
     }
     for (size_t i = 0; i < len; ++i) {
         data[i] = func(i < data.size() ? data[i] : this->getEmptyCell(),
-                       i < rhs.data.size() ? rhs.data[i] : rhs.getEmptyCell());
+                       i < c_rhs.data.size() ? c_rhs.data[i] : c_rhs.getEmptyCell());
     }
     make_right();
+    sign = false;
+    if (!data.empty() && (data.back() & ((ui) 1 << (kLogBase - 1)))) {
+        //*this -= 1;
+        *this = ~*this + 1;
+        sign = true;
+    }
     return *this;
 }
 
