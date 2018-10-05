@@ -366,10 +366,12 @@ big_integer &big_integer::operator%=(big_integer const &rhs) {
 big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std::function<ui(ui, ui)> func) {
     size_t len = std::max(data.size(), rhs.data.size());
     if (sign) {
+        sign = false;
         *this = ~*this + 1;
     }
     big_integer c_rhs = rhs;
     if (rhs.sign) {
+        c_rhs.sign = false;
         c_rhs = ~rhs + 1;
     }
     ui emptyCell = getEmptyCell();
@@ -383,7 +385,6 @@ big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std:
                        i < c_rhs.data.size() ? c_rhs.data[i] : c_rhs.getEmptyCell());
     }
     make_right();
-    sign = false;
     if (!data.empty() && (data.back() & ((ui) 1 << (kLogBase - 1)))) {
         //*this -= 1;
         *this = ~*this + 1;
