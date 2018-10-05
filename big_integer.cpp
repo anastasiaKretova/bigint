@@ -602,3 +602,4 @@ bool operator<=(big_integer const & a, big_integer const & b) {
 bool operator>=(big_integer const & a, big_integer const & b) {
     return (b <= a);
 }
+/**/
