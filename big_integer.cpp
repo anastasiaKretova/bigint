@@ -370,9 +370,9 @@ big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std:
         *this = ~*this + 1;
     }
     big_integer c_rhs = rhs;
-    if (rhs.sign) {
+    if (c_rhs.sign) {
         c_rhs.sign = false;
-        c_rhs = ~rhs + 1;
+        c_rhs = ~c_rhs + 1;
     }
     ui emptyCell = getEmptyCell();
     size_t oldSize = data.size();
@@ -386,7 +386,6 @@ big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std:
     }
     make_right();
     if (!data.empty() && (data.back() & ((ui) 1 << (kLogBase - 1)))) {
-        //*this -= 1;
         *this = ~*this + 1;
         sign = true;
     }
@@ -476,8 +475,16 @@ big_integer big_integer::operator~() const {
     if (data.empty()) {
         r.data.push_back(0);
     }
+    if (sign) {
+        r.sign = false;
+        r = ~r + 1;
+    }
     for (size_t i = 0; i < r.data.size(); ++i) {
         r.data[i] = ~r.data[i];
+    }
+    if (!r.data.empty() && (r.data.back() & ((ui) 1 << (kLogBase - 1)))) {
+        r = ~r + 1;
+        r.sign = true;
     }
     r.make_right();
     return r;
