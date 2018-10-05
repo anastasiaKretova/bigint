@@ -367,12 +367,12 @@ big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std:
     size_t len = std::max(data.size(), rhs.data.size());
     if (sign) {
         sign = false;
-        *this = ~*this + 1;
+        *this = myt(*this) + 1;
     }
     big_integer c_rhs = rhs;
     if (c_rhs.sign) {
         c_rhs.sign = false;
-        c_rhs = ~c_rhs + 1;
+        c_rhs = myt(c_rhs) + 1;
     }
     ui emptyCell = getEmptyCell();
     size_t oldSize = data.size();
@@ -386,7 +386,7 @@ big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std:
     }
     make_right();
     if (!data.empty() && (data.back() & ((ui) 1 << (kLogBase - 1)))) {
-        *this = ~*this + 1;
+        *this = myt(*this) + 1;
         sign = true;
     }
     return *this;
@@ -470,20 +470,28 @@ big_integer &big_integer::operator>>=(int rhs) {
     return *this;
 }
 
+big_integer myt(big_integer const &a) {
+    big_integer aa = a;
+    for (size_t i = 0; i < a.data.size(); ++i) {
+        aa.data[i] = ~a.data[i];
+    }
+    return aa;
+}
+
 big_integer big_integer::operator~() const {
     big_integer r = *this;
     if (data.empty()) {
         r.data.push_back(0);
     }
-    if (sign) {
+    if (r.sign) {
         r.sign = false;
-        r = ~r + 1;
+        r = myt(r) + 1;
     }
     for (size_t i = 0; i < r.data.size(); ++i) {
         r.data[i] = ~r.data[i];
     }
     if (!r.data.empty() && (r.data.back() & ((ui) 1 << (kLogBase - 1)))) {
-        r = ~r + 1;
+        r = myt(r) + 1;
         r.sign = true;
     }
     r.make_right();
@@ -602,4 +610,3 @@ bool operator<=(big_integer const & a, big_integer const & b) {
 bool operator>=(big_integer const & a, big_integer const & b) {
     return (b <= a);
 }
-/**/
