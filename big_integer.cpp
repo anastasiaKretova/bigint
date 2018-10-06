@@ -146,16 +146,24 @@ void big_integer::make_right() {
     data.resize(i + 1);
 }
 
-big_integer& big_integer::operator*=(ui const &b) {
-    big_integer res;
-    res.sign = this->sign;
-    unsigned c = 0;
-    for (size_t i = 0; i < this->data.size(); ++i) {
-        res.data[i] = this->data[i] * b + c;
-        c = ((unsigned long long)this->data[i] * b + c) / big_integer::kBase;
-    }
-    res.make_right();
-    return *this;
+big_integer &big_integer::operator*=(big_integer const &rhs) {
+	big_integer res;
+	res.data.resize(data.size() + rhs.data.size());
+	for (size_t i = 0; i < res.data.size(); i++) {
+		res.data[i] = 0;
+	}
+	for (size_t i = 0; i < data.size(); i++) {
+		ull c = 0;
+		for (size_t j = 0; j < (int)rhs.data.size() || c; j++) {
+			ull temp = res.data[i + j] + data[i] * 1ll * (j < rhs.data.size() ? rhs.data[j] : 0) + c;
+			res.data[i + j] = ull(temp % maxNumber);
+			c = ull(temp / maxNumber);
+		}
+	}
+	res.sign = sign ^ rhs.sign;
+	res.make_right();
+	*this = res;
+	return  *this;
 }
 
 big_integer& big_integer::operator+=(big_integer const &rhs) {
