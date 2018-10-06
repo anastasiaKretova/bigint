@@ -1,8 +1,10 @@
 #include "big_integer.h"
 #include <algorithm>
+#include <iostream>
 
 const ui big_integer::kLogBase = 32;
 const ull big_integer::kBase = (ull)1 << kLogBase;
+const ui big_integer::maxNumber = (ui) 1e9;
 
 big_integer::big_integer() {
     data.push_back(0);
@@ -192,17 +194,25 @@ big_integer &big_integer::operator-=(big_integer const &rhs) {
     if (!sign && *this < rhs || sign && *this > rhs) {
         return *this = -(rhs - *this);
     }
-    for (size_t i = 0; i < data.size(); ++i) {
-        if (data[i] > rhs.data[i]) {
-            data[i] -= rhs.data[i];
+    std::vector <int> m;
+    m.resize(data.size());
+    std::cout << data.size() << ' ' << rhs.data.size() << '\n';
+    std::cout << *this << '\n' << rhs << '\n' << maxNumber - 1 << '\n';
+    for (size_t i = 0; i < rhs.data.size(); ++i) {
+        if (1ll * data[i] + m[i] * (maxNumber - 1) > rhs.data[i]) {
+            data[i] = m[i] * (maxNumber - 1) - rhs.data[i] + data[i];
         } else {
             size_t p = i + 1;
             while (data[p] == 0) {
-                data[p++] += kBase - 1;
+                m[p++] = 1;
             }
             data[p] -= 1;
-            data[i] -= rhs.data[i];
+            data[i] = m[i] * (maxNumber - 1) - rhs.data[i] + data[i];
         }
+        std::cout << data[i] << ' ';
+    }
+    for (size_t i = rhs.data.size(); i < data.size(); ++i) {
+        data[i] = m[i] * (maxNumber - 1) + data[i];
     }
     make_right();
     return *this;
@@ -227,153 +237,154 @@ big_integer &big_integer::operator*=(big_integer const &rhs) {
 
 
 std::pair<big_integer, ui> sDiv(big_integer const & a, ui const & b) {
-	//неправильная херня__(fixed)
-	big_integer res;
-	res = a;
-	long long cur = 0;
-	long long temp = 0;
-	for (int i = a.data.size() - 1; i >= 0; i--) {
-		temp = cur * big_integer::kBase + res.data[i];
-		res.data[i] = temp / b;
-		cur = temp - res.data[i] * b;
-	}
-	res.make_right();
-	return { res, cur };
+    //неправильная херня__(fixed)
+    big_integer res;
+    res = a;
+    long long cur = 0;
+    long long temp = 0;
+    for (int i = a.data.size() - 1; i >= 0; i--) {
+        temp = cur * big_integer::kBase + res.data[i];
+        res.data[i] = temp / b;
+        cur = temp - res.data[i] * b;
+    }
+    res.make_right();
+    return { res, cur };
 }
 
 void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur) {
 
-	// херня со знаками
-	if (a.sign && b.sign) {
-		big_integer d = -b;
-		myDiv(-a, d, res, cur);
-		return;
-	}
-	if (a.sign) {
-		myDiv(-a, b, res, cur);
-		if (res == 0) cur.sign = true;
-		else res.sign = true;
-		return;
-	}
-	if (b.sign) {
-		big_integer d = -b;
-		myDiv(a, d, res, cur);
-		if (res == 0) cur.sign = true;
-		else res.sign = true;
-		return;
-	}
+    // херня со знаками
+    if (a.sign && b.sign) {
+        big_integer d = -b;
+        myDiv(-a, d, res, cur);
+        return;
+    }
+    if (a.sign) {
+        myDiv(-a, b, res, cur);
+        if (res == 0) cur.sign = true;
+        else res.sign = true;
+        return;
+    }
+    if (b.sign) {
+        big_integer d = -b;
+        myDiv(a, d, res, cur);
+        if (res == 0) cur.sign = true;
+        else res.sign = true;
+        return;
+    }
 
-	//частные случаи
+    //частные случаи
 
-	if (a.data.size() < b.data.size()) {
-		res = 0;
-		cur = a;
-		return;
-	}
-	if (b.data.size() == 1) {
-		std::pair<big_integer, ui> p = sDiv(a, b.data[0]);
-		res = p.first;
-		cur.data[0] = p.second;
-		return;
-	}
+    if (a.data.size() < b.data.size()) {
+        res = 0;
+        cur = a;
+        return;
+    }
+    if (b.data.size() == 1) {
+        std::pair<big_integer, ui> p = sDiv(a, b.data[0]);
+        res = p.first;
+        cur.data[0] = p.second;
+        return;
+    }
 
-	// объявление переменных
-	big_integer u(a.data, a.sign);
-	u.data.resize(a.data.size() + 1);
-	u.data[a.data.size()] = 0;
-
-
-	long n = b.data.size(), m = u.data.size() - b.data.size(); //косяк(fixed)
-	long uJ, vJ, i;                  //vJ - тек сдвиг B относ U(при вычитании), инд очередной цифры частного
-	long temp1, temp2, temp = 0;   //uJ - тек цифра U
-	long qGuess, r;                 //догадка для частного и остаток
-	long borrow, carry; //переносы
+    // объявление переменных
+    big_integer u(a.data, a.sign);
+    u.data.resize(a.data.size() + 1);
+    u.data[a.data.size()] = 0;
 
 
-	long scale = big_integer::kBase / (b.data[n - 1] + 1); //нормализация
-	if (scale > 1) {   //нормализация
-		u *= scale;
-		b *= scale;
-	}
-	
-	//пошла жара
-	for (vJ = m, uJ = n + vJ; vJ >= 0; --vJ, --uJ) {
+    long n = b.data.size(), m = u.data.size() - b.data.size(); //косяк(fixed)
+    long uJ, vJ, i;                  //vJ - тек сдвиг B относ U(при вычитании), инд очередной цифры частного
+    long temp1, temp2, temp = 0;   //uJ - тек цифра U
+    long qGuess, r;                 //догадка для частного и остаток
+    long borrow, carry; //переносы
 
-		qGuess = (u.data[uJ] * big_integer::kBase + u.data[uJ - 1]) / b.data[n - 1];
-		r = (u.data[uJ] * big_integer::kBase + u.data[uJ - 1]) % b.data[n - 1];
 
-		while (r < big_integer::kBase) {
+    long scale = big_integer::kBase / (b.data[n - 1] + 1); //нормализация
+    if (scale > 1) {   //нормализация
+        u *= scale;
+        b *= scale;
+    }
 
-			temp2 = b.data[n - 2] * qGuess;
-			temp1 = r * big_integer::kBase + u.data[uJ - 2];
+    //пошла жара
+    for (vJ = m, uJ = n + vJ; vJ >= 0; --vJ, --uJ) {
 
-			if ((temp2 > temp1) || (qGuess == big_integer::kBase)) {
+        qGuess = (u.data[uJ] * big_integer::kBase + u.data[uJ - 1]) / b.data[n - 1];
+        r = (u.data[uJ] * big_integer::kBase + u.data[uJ - 1]) % b.data[n - 1];
 
-				--qGuess;                 //не работает, qGuess уменьшим
-				r += b.data[n - 1];       //новый остаток
+        while (r < big_integer::kBase) {
 
-			} else break;     //qGuess правильное или на единицу больше
-		}
-		//так ну тут сложно было облажаться, поехали дальше
-		//U - B * qGuess начиная с vJ+i позиции
-		carry = 0, borrow = 0;
-		ui *uShift = &u.data[vJ];
-		for (i = 0; i < n; i++) {
+            temp2 = b.data[n - 2] * qGuess;
+            temp1 = r * big_integer::kBase + u.data[uJ - 2];
 
-			temp1 = b.data[i] * qGuess + carry;
-			carry = temp1 / big_integer::kBase;
-			temp1 -= carry * big_integer::kBase;
+            if ((temp2 > temp1) || (qGuess == big_integer::kBase)) {
 
-			temp2 = u.data[vJ + i] - temp1 + borrow;
-			if (temp2 < 0) {
-				u.data[i + vJ] = temp2 + big_integer::kBase;
-				borrow = -1;
-			}
-			else {
-				u.data[i + vJ] = temp2;
-				borrow = 0;
-			}
-		}
-		temp2 = u.data[i + vJ] - carry + borrow;
-		if (temp2 < 0) {
-			u.data[i + vJ] = temp2 + big_integer::kBase;
-			borrow = -1;
-		}
-		else {
-			u.data[i + vJ] = temp2;
-			borrow = 0;
-		}
-		if (borrow == 0) res.data[vJ] = qGuess;
-		else { //qGuess на 1 больше нужного
-			res.data[vJ] = qGuess - 1;
-			carry = 0;
-			for (i = 0; i < n; ++i) {
-				temp = u.data[i + vJ] + b.data[i] + carry;
-				if (temp >= big_integer::kBase) {
-					u.data[i + vJ] = temp - big_integer::kBase;
-					carry = 1;
-				}
-				else {
-					u.data[i + vJ] = temp;
-					carry = 0;
-				}
-			}
-			u.data[i + vJ] = u.data[i + vJ] + carry - big_integer::kBase;
-		}
-		u.make_right();
-		//u.data.resize(u.data.size() + 1);
+                --qGuess;                 //не работает, qGuess уменьшим
+                r += b.data[n - 1];       //новый остаток
 
-	}
-	res.make_right();
-	//res.data.resize(res.data.size() + 1);
-	if (scale > 1) {
-		std::pair<big_integer, ui> p = sDiv(b, scale);
-		b = p.first;
-		p = sDiv(u, scale);
-		cur = p.first;
-	}
-	else cur = u;
+            } else break;     //qGuess правильное или на единицу больше
+        }
+        //так ну тут сложно было облажаться, поехали дальше
+        //U - B * qGuess начиная с vJ+i позиции
+        carry = 0, borrow = 0;
+        ui *uShift = &u.data[vJ];
+        for (i = 0; i < n; i++) {
+
+            temp1 = b.data[i] * qGuess + carry;
+            carry = temp1 / big_integer::kBase;
+            temp1 -= carry * big_integer::kBase;
+
+            temp2 = u.data[vJ + i] - temp1 + borrow;
+            if (temp2 < 0) {
+                u.data[i + vJ] = temp2 + big_integer::kBase;
+                borrow = -1;
+            }
+            else {
+                u.data[i + vJ] = temp2;
+                borrow = 0;
+            }
+        }
+        temp2 = u.data[i + vJ] - carry + borrow;
+        if (temp2 < 0) {
+            u.data[i + vJ] = temp2 + big_integer::kBase;
+            borrow = -1;
+        }
+        else {
+            u.data[i + vJ] = temp2;
+            borrow = 0;
+        }
+        if (borrow == 0) res.data[vJ] = qGuess;
+        else { //qGuess на 1 больше нужного
+            res.data[vJ] = qGuess - 1;
+            carry = 0;
+            for (i = 0; i < n; ++i) {
+                temp = u.data[i + vJ] + b.data[i] + carry;
+                if (temp >= big_integer::kBase) {
+                    u.data[i + vJ] = temp - big_integer::kBase;
+                    carry = 1;
+                }
+                else {
+                    u.data[i + vJ] = temp;
+                    carry = 0;
+                }
+            }
+            u.data[i + vJ] = u.data[i + vJ] + carry - big_integer::kBase;
+        }
+        u.make_right();
+        //u.data.resize(u.data.size() + 1);
+
+    }
+    res.make_right();
+    //res.data.resize(res.data.size() + 1);
+    if (scale > 1) {
+        std::pair<big_integer, ui> p = sDiv(b, scale);
+        b = p.first;
+        p = sDiv(u, scale);
+        cur = p.first;
+    }
+    else cur = u;
 }
+
 big_integer &big_integer::operator/=(big_integer const &rhs) {
     big_integer b = rhs, res, cur;
     myDiv(*this, b, res, cur);
@@ -382,9 +393,7 @@ big_integer &big_integer::operator/=(big_integer const &rhs) {
 }
 
 big_integer &big_integer::operator%=(big_integer const &rhs) {
-    big_integer b = rhs, res, cur;
-    myDiv(*this, b, res, cur);
-    *this = cur;
+    *this = *this - (*this / rhs) * rhs;
     return *this;
 }
 
