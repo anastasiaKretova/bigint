@@ -159,26 +159,28 @@ big_integer& big_integer::operator*=(ui const &b) {
 }
 
 big_integer& big_integer::operator+=(big_integer const &rhs) {
-    if (sign != rhs.sign) {
-        if (sign) {
-            *this = (rhs - -*this);
-            return *this;
-        } else {
-            return (*this -= -rhs);
-        }
-    }
-    size_t len = std::max(data.size(), rhs.data.size()) + 1;
-    size_t oldSize = data.size();
-    data.resize(len);
-    std::fill(data.begin() + oldSize, data.begin() + len, 0);
-    unsigned long c = 0;
-    for (size_t i = 0; i < std::min(len, rhs.data.size()); ++i) {
-        data[i] = data[i] + rhs.data[i] + c;
-        c = (data[i] + (unsigned long long)rhs.data[i]) / kBase;
-    }
-    data[std::min(len, rhs.data.size())] += c;
-    make_right();
-    return *this;
+	if (sign != rhs.sign) {
+		if (sign) {
+			*this = (rhs - -*this);
+			return *this;
+		}
+		else {
+			return (*this -= -rhs);
+		}
+	}
+	size_t len = std::max(data.size(), rhs.data.size()) + 1;
+	size_t oldSize = data.size();
+	data.resize(len);
+	std::fill(data.begin() + oldSize, data.begin() + len, 0);
+	unsigned long c = 0;
+	for (size_t i = 0; i < std::min(len, rhs.data.size()); i++) {
+		data[i] = data[i] + rhs.data[i] + c;
+		c = (data[i] / maxNumber);
+		data[i] %= maxNumber;
+	}
+	data[std::min(len, rhs.data.size())] += c;
+	make_right();
+	return *this;
 }
 
 big_integer &big_integer::operator-=(big_integer const &rhs) {
