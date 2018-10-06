@@ -218,19 +218,19 @@ big_integer &big_integer::operator-=(big_integer const &rhs) {
 
 
 big_integer &big_integer::operator*=(big_integer const &rhs) {
-    big_integer res;
-    res.data.resize(data.size() + rhs.data.size());
-    for (size_t i = 0; i < data.size(); ++i) {
-        for (int j = 0, c = 0; j < rhs.data.size() || c; j++) {
-            ui temp = res.data[i + j] + data[i] * 1ll * (j < rhs.data.size() ? rhs.data[j] : 0) + c;
-            res.data[i + j] = (temp % kBase);
-            c = temp / kBase;
-        }
-    }
-    res.sign = sign ^ rhs.sign;
-    res.make_right();
-    *this = res;
-    return  *this;
+	big_integer res;
+	res.data.resize(data.size() + rhs.data.size());
+	for (size_t i = 0; i < data.size(); ++i) {
+		for (int j = 0, c = 0; j < rhs.data.size() || c; j++) {
+			ull temp = res.data[i + j] + data[i] * 1ll * (j < rhs.data.size() ? rhs.data[j] : 0) + c;
+			res.data[i + j] = (temp % maxNumber);
+			c = temp / maxNumber;
+		}
+	}
+	res.sign = sign ^ rhs.sign;
+	res.make_right();
+	*this = res;
+	return  *this;
 }
 
 
