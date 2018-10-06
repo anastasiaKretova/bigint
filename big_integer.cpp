@@ -182,40 +182,36 @@ big_integer& big_integer::operator+=(big_integer const &rhs) {
 }
 
 big_integer &big_integer::operator-=(big_integer const &rhs) {
-    if (*this == rhs) {
-        data.resize(0);
-        data.push_back(0);
-        sign = false;
-        return *this;
-    }
-    if (sign != rhs.sign) {
-        return *this += -rhs;
-    }
-    if (!sign && *this < rhs || sign && *this > rhs) {
-        return *this = -(rhs - *this);
-    }
-    std::vector <int> m;
-    m.resize(data.size());
-    std::cout << data.size() << ' ' << rhs.data.size() << '\n';
-    std::cout << *this << '\n' << rhs << '\n' << maxNumber - 1 << '\n';
-    for (size_t i = 0; i < rhs.data.size(); ++i) {
-        if (1ll * data[i] + m[i] * (maxNumber - 1) >= rhs.data[i]) {
-            data[i] = m[i] * (maxNumber - 1) - rhs.data[i] + data[i];
-        } else {
-            size_t p = i + 1;
-            while (data[p] == 0) {
-                m[p++] = 1;
-            }
-            data[p] -= 1;
-            data[i] = m[i] * (maxNumber - 1) - rhs.data[i] + data[i];
-        }
-        std::cout << data[i] << ' ';
-    }
-    for (size_t i = rhs.data.size(); i < data.size(); ++i) {
-        data[i] = m[i] * (maxNumber - 1) + data[i];
-    }
-    make_right();
-    return *this;
+	if (*this == rhs) {
+		data.resize(0);
+		data.push_back(0);
+		sign = false;
+		return *this;
+	}
+	std::cout << this->data.size() << std::endl;
+	if (sign != rhs.sign) {
+		return *this += -rhs;
+	}
+	if (!sign && *this < rhs || sign && *this > rhs) {
+		return *this = -(rhs - *this);
+	}
+	long long temp = 0;
+	for (size_t i = 0; i < rhs.data.size() || temp; ++i) {
+		long long cur = data[i];
+		cur -= temp;
+		if (i < rhs.data.size()) {
+			cur -= rhs.data[i];
+		}
+		if (cur < 0)
+			temp = 1;
+		else
+			temp = 0;
+		if (temp)
+			cur += big_integer::maxNumber;
+		data[i] = cur;
+	}
+	make_right();
+	return *this;
 }
 
 
