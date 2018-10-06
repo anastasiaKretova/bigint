@@ -199,7 +199,7 @@ big_integer &big_integer::operator-=(big_integer const &rhs) {
     std::cout << data.size() << ' ' << rhs.data.size() << '\n';
     std::cout << *this << '\n' << rhs << '\n' << maxNumber - 1 << '\n';
     for (size_t i = 0; i < rhs.data.size(); ++i) {
-        if (1ll * data[i] + m[i] * (maxNumber - 1) > rhs.data[i]) {
+        if (1ll * data[i] + m[i] * (maxNumber - 1) >= rhs.data[i]) {
             data[i] = m[i] * (maxNumber - 1) - rhs.data[i] + data[i];
         } else {
             size_t p = i + 1;
