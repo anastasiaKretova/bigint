@@ -1,10 +1,8 @@
 #include "big_integer.h"
 #include <algorithm>
-#include <iostream>
 
 const ui big_integer::kLogBase = 32;
 const ull big_integer::kBase = (ull)1 << kLogBase;
-const ui big_integer::maxNumber = (ui) 1e9;
 
 big_integer::big_integer() {
     data.push_back(0);
@@ -38,7 +36,7 @@ big_integer::big_integer(int a) {
         //    data.push_back((unsigned)(-a + 1));
         //    data.push_back((unsigned)1);
         //} else {
-        data.push_back((unsigned)(-a));
+        data.push_back((unsigned)-((long long)a));
         //}
         sign = true;
     }
@@ -53,20 +51,6 @@ big_integer::big_integer(std::vector<ui> const &obj, bool _sign) {
         sign = false;
 }
 
-
-std::string big_integer::BASE_to_string(ui n, bool f) const {
-    std::string s;
-    while (n != 0) {
-        s = char((n % 10) + '0') + s;
-        n /= 10;
-    }
-    if (f)
-        while (s.length() < 9) {
-            s = "0" + s;
-        }
-    return s;
-}
-
 ui big_integer::getEmptyCell() const
 {
     if (sign) {
@@ -77,13 +61,15 @@ ui big_integer::getEmptyCell() const
 
 std::string big_integer::to_string() const {
     std::string s = "";
-    for (int i = 0; i < (int)data.size(); ++i) {
-        if (i != (int)data.size() - 1)
-            s = BASE_to_string(data[i], true) + s;
-        else
-            s = BASE_to_string(data[i], false) + s;
+    bool cur_sign = sign;
+    big_integer a = *this;
+    a.sign = false;
+    while (a > 0) {
+        std::pair<big_integer, ui> p = sDiv(a, 10);
+        a = p.first;
+        s = std::to_string(p.second) + s;
     }
-    if (this->sign) {
+    if (cur_sign) {
         s = "-" + s;
     }
     if (s.empty()) {
@@ -95,30 +81,22 @@ std::string big_integer::to_string() const {
 
 big_integer::big_integer(std::string const &str) {
     std::string s(str);
+    *this = 0;
     if (s == "0") {
         return;
     }
+    bool my_sign;
     if (s[0] == '-') {
-        sign = true;
+        my_sign = true;
         s.erase(s.begin());
     } else {
-        sign = false;
+        my_sign = false;
     }
-    while (s.length() % 9 != 0) {
-        s = '0' + s;
+    for (int i = 0; i < s.length(); ++i) {
+        *this *= (ui)10;
+        *this += (int)(s[i] - '0');
     }
-    long k = s.length() / 9;
-    for (long i = 0; i < k; ++i) {
-        data.push_back(0);
-        for (int j = 8; j >= 0; --j) {
-            data[i] += ((int((s[i * 9 + j])) - int('0')) * BASE_Degree[8 - j]);
-        }
-    }
-    for (int i = 0; i < (int)data.size() / 2; ++i) {
-        ui a = data[i];
-        data[i] = data[(int)data.size() - i - 1];
-        data[data.size() - i - 1] = a;
-    }
+    sign = my_sign;
 }
 
 
@@ -146,104 +124,104 @@ void big_integer::make_right() {
     data.resize(i + 1);
 }
 
-big_integer &big_integer::operator*=(big_integer const &rhs) {
-	big_integer res;
-	res.data.resize(data.size() + rhs.data.size());
-	for (size_t i = 0; i < res.data.size(); i++) {
-		res.data[i] = 0;
-	}
-	for (size_t i = 0; i < data.size(); i++) {
-		ull c = 0;
-		for (size_t j = 0; j < (int)rhs.data.size() || c; j++) {
-			ull temp = res.data[i + j] + data[i] * 1ll * (j < rhs.data.size() ? rhs.data[j] : 0) + c;
-			res.data[i + j] = ull(temp % maxNumber);
-			c = ull(temp / maxNumber);
-		}
-	}
-	res.sign = sign ^ rhs.sign;
-	res.make_right();
-	*this = res;
-	return  *this;
+big_integer& big_integer::operator*=(ui const &b) {
+    big_integer res;
+    res.sign = this->sign;
+    res.data.resize(data.size() + 1);
+    unsigned c = 0;
+    for (size_t i = 0; i < data.size(); ++i) {
+        res.data[i] = (data[i] * b + c) ;
+        c = ((unsigned long long)data[i] * b + c) / big_integer::kBase;
+    }
+    res.data[data.size()] = c;
+    res.make_right();
+    *this = res;
+    return *this;
 }
 
 big_integer& big_integer::operator+=(big_integer const &rhs) {
-	if (sign != rhs.sign) {
-		if (sign) {
-			*this = (rhs - -*this);
-			return *this;
-		}
-		else {
-			return (*this -= -rhs);
-		}
-	}
-	size_t len = std::max(data.size(), rhs.data.size()) + 1;
-	size_t oldSize = data.size();
-	data.resize(len);
-	std::fill(data.begin() + oldSize, data.begin() + len, 0);
-	unsigned long c = 0;
-	for (size_t i = 0; i < std::min(len, rhs.data.size()); i++) {
-		data[i] = data[i] + rhs.data[i] + c;
-		c = (data[i] / maxNumber);
-		data[i] %= maxNumber;
-	}
-	data[std::min(len, rhs.data.size())] += c;
-	make_right();
-	return *this;
+    if (sign != rhs.sign) {
+        if (sign) {
+            *this = (rhs - -*this);
+            return *this;
+        } else {
+            return (*this -= -rhs);
+        }
+    }
+    size_t len = std::max(data.size(), rhs.data.size()) + 1;
+    size_t oldSize = data.size();
+    data.resize(len);
+    std::fill(data.begin() + oldSize, data.begin() + len, 0);
+    bool c = false;
+    ui b = 0;
+    for (size_t i = 0; i < len; i++) {
+        bool old = c;
+        c = (ull)data[i] + (b = i < rhs.data.size() ? rhs.data[i] : rhs.getEmptyCell()) + c >= kBase;
+        data[i] += b + old;
+        data[i] %= kBase;
+    }
+    make_right();
+    return *this;
 }
 
 big_integer &big_integer::operator-=(big_integer const &rhs) {
-	if (*this == rhs) {
-		data.resize(0);
-		data.push_back(0);
-		sign = false;
-		return *this;
-	}
-	std::cout << this->data.size() << std::endl;
-	if (sign != rhs.sign) {
-		return *this += -rhs;
-	}
-	if (!sign && *this < rhs || sign && *this > rhs) {
-		return *this = -(rhs - *this);
-	}
-	long long temp = 0;
-	for (size_t i = 0; i < rhs.data.size() || temp; ++i) {
-		long long cur = data[i];
-		cur -= temp;
-		if (i < rhs.data.size()) {
-			cur -= rhs.data[i];
-		}
-		if (cur < 0)
-			temp = 1;
-		else
-			temp = 0;
-		if (temp)
-			cur += big_integer::maxNumber;
-		data[i] = cur;
-	}
-	make_right();
-	return *this;
+    if (*this == rhs) {
+        data.resize(0);
+        data.push_back(0);
+        sign = false;
+        return *this;
+    }
+    if (sign != rhs.sign) {
+        return *this += -rhs;
+    }
+    if (!sign && *this < rhs || sign && *this > rhs) {
+        return *this = -(rhs - *this);
+    }
+    long long temp = 0;
+    for (size_t i = 0; i < rhs.data.size() || temp; ++i) {
+        long long cur = data[i];
+        cur -= temp;
+        if (i < rhs.data.size()) {
+            cur -= rhs.data[i];
+        }
+        if (cur < 0) {
+            temp = 1;
+        }
+        else {
+            temp = 0;
+        }
+        if (temp)
+            cur += big_integer::kBase;
+        data[i] = cur;
+    }
+    //if (temp) data[rhs.data.size() - 1] -= temp;
+    make_right();
+    return *this;
 }
 
 
 big_integer &big_integer::operator*=(big_integer const &rhs) {
-	big_integer res;
-	res.data.resize(data.size() + rhs.data.size());
-	for (size_t i = 0; i < data.size(); ++i) {
-		for (int j = 0, c = 0; j < rhs.data.size() || c; j++) {
-			ull temp = res.data[i + j] + data[i] * 1ll * (j < rhs.data.size() ? rhs.data[j] : 0) + c;
-			res.data[i + j] = (temp % maxNumber);
-			c = temp / maxNumber;
-		}
-	}
-	res.sign = sign ^ rhs.sign;
-	res.make_right();
-	*this = res;
-	return  *this;
+    big_integer res;
+    unsigned int c;
+    res.data.resize(data.size() + rhs.data.size() + 1);
+    for (size_t i = 0; i < data.size(); ++i) {
+        c = 0;
+        for (int j = 0; j < rhs.data.size(); j++) {
+            ull temp = 1ull * res.data[i + j] + 1ull * data[i] * rhs.data[j] + c;
+            res.data[i + j] = temp;
+            c = temp / kBase;
+        }
+        if (res.data.size() < i + rhs.data.size()) res.data.push_back(0);
+        res.data[i + rhs.data.size()] += c;
+    }
+    res.sign = sign ^ rhs.sign;
+    res.make_right();
+    *this = res;
+    return  *this;
 }
 
 
 std::pair<big_integer, ui> sDiv(big_integer const & a, ui const & b) {
-    //неправильная херня__(fixed)
     big_integer res;
     res = a;
     long long cur = 0;
@@ -258,8 +236,6 @@ std::pair<big_integer, ui> sDiv(big_integer const & a, ui const & b) {
 }
 
 void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur) {
-
-    // херня со знаками
     if (a.sign && b.sign) {
         big_integer d = -b;
         myDiv(-a, d, res, cur);
@@ -294,26 +270,26 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
     }
 
     // объявление переменных
-    big_integer u(a.data, a.sign);
-    u.data.resize(a.data.size() + 1);
-    u.data[a.data.size()] = 0;
+    big_integer u = a;
+
+    long n = b.data.size(), m = u.data.size() - b.data.size();
+    long uJ = 0, vJ = 0, i = 0;
+    ull temp1;
+    long temp2, temp = 0;
+    long qGuess, r;                 //догадка для частного и его остаток
+    long borrow, carry;             //переносы
 
 
-    long n = b.data.size(), m = u.data.size() - b.data.size(); //косяк(fixed)
-    long uJ, vJ, i;                  //vJ - тек сдвиг B относ U(при вычитании), инд очередной цифры частного
-    long temp1, temp2, temp = 0;   //uJ - тек цифра U
-    long qGuess, r;                 //догадка для частного и остаток
-    long borrow, carry; //переносы
-
-
-    long scale = big_integer::kBase / (b.data[n - 1] + 1); //нормализация
-    if (scale > 1) {   //нормализация
+    auto scale = big_integer::kBase / (b.data[n - 1] + 1); //нормализация
+    if (scale > 1) {
         u *= scale;
         b *= scale;
     }
-
-    //пошла жара
-    for (vJ = m, uJ = n + vJ; vJ >= 0; --vJ, --uJ) {
+    u.data.resize(u.data.size() + 1);
+    res.data.resize(m + 1);
+    //uJ - тек цифра U
+    //vJ - тек сдвиг B относ U(при вычитании), инд очередной цифры частного
+    for (vJ = m, uJ = n + vJ - 1; vJ >= 0; --vJ, --uJ) {
 
         qGuess = (u.data[uJ] * big_integer::kBase + u.data[uJ - 1]) / b.data[n - 1];
         r = (u.data[uJ] * big_integer::kBase + u.data[uJ - 1]) % b.data[n - 1];
@@ -330,13 +306,12 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
 
             } else break;     //qGuess правильное или на единицу больше
         }
-        //так ну тут сложно было облажаться, поехали дальше
         //U - B * qGuess начиная с vJ+i позиции
         carry = 0, borrow = 0;
         ui *uShift = &u.data[vJ];
         for (i = 0; i < n; i++) {
 
-            temp1 = b.data[i] * qGuess + carry;
+            temp1 = 1ull * b.data[i] * qGuess + carry;
             carry = temp1 / big_integer::kBase;
             temp1 -= carry * big_integer::kBase;
 
@@ -407,12 +382,14 @@ big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std:
     size_t len = std::max(data.size(), rhs.data.size());
     if (sign) {
         sign = false;
-        *this = myt(*this) + 1;
+        myt(*this);
+        *this += 1;
     }
     big_integer c_rhs = rhs;
     if (c_rhs.sign) {
         c_rhs.sign = false;
-        c_rhs = myt(c_rhs) + 1;
+        myt(c_rhs);
+        c_rhs += 1;
     }
     ui emptyCell = getEmptyCell();
     size_t oldSize = data.size();
@@ -424,11 +401,12 @@ big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std:
         data[i] = func(i < data.size() ? data[i] : this->getEmptyCell(),
                        i < c_rhs.data.size() ? c_rhs.data[i] : c_rhs.getEmptyCell());
     }
-    make_right();
     if (!data.empty() && (data.back() & ((ui) 1 << (kLogBase - 1)))) {
-        *this = myt(*this) + 1;
+        myt(*this);
+        *this += 1;
         sign = true;
     }
+    make_right();
     return *this;
 }
 
@@ -461,7 +439,6 @@ void big_integer::shiftCells(int rhs) {
         for (size_t i = data.size(); i > data.size() + rhs; --i) {
             data[i - 1] = getEmptyCell();
         }
-        make_right();
     }
 }
 
@@ -491,6 +468,12 @@ big_integer &big_integer::operator>>=(int rhs) {
     if (rhs < 0) {
         return *this <<= -rhs;
     }
+    bool my_sign = sign;
+    if (my_sign) {
+        sign = false;
+        myt(*this);
+        *this += 1;
+    }
     int auxShift = rhs / kLogBase;
     if (auxShift) {
         shiftCells(-auxShift);
@@ -498,6 +481,9 @@ big_integer &big_integer::operator>>=(int rhs) {
     auxShift = rhs - auxShift * kLogBase;
     if (auxShift) {
         ui cur = getEmptyCell();
+        if (my_sign) {
+            cur = (ui)(kBase - 1);
+        }
         for (size_t i = 0; i < data.size(); ++i) {
             if (i != 0) {
                 data[i - 1] += data[i] << (kLogBase - auxShift);
@@ -506,36 +492,17 @@ big_integer &big_integer::operator>>=(int rhs) {
         }
         data.back() += cur << (kLogBase - auxShift);
     }
+    if (my_sign) {
+        myt(*this);
+        *this += 1;
+        sign = true;
+    }
     make_right();
     return *this;
 }
 
-big_integer myt(big_integer const &a) {
-    big_integer aa = a;
-    for (size_t i = 0; i < a.data.size(); ++i) {
-        aa.data[i] = ~a.data[i];
-    }
-    return aa;
-}
-
 big_integer big_integer::operator~() const {
-    big_integer r = *this;
-    if (data.empty()) {
-        r.data.push_back(0);
-    }
-    if (r.sign) {
-        r.sign = false;
-        r = myt(r) + 1;
-    }
-    for (size_t i = 0; i < r.data.size(); ++i) {
-        r.data[i] = ~r.data[i];
-    }
-    if (!r.data.empty() && (r.data.back() & ((ui) 1 << (kLogBase - 1)))) {
-        r = myt(r) + 1;
-        r.sign = true;
-    }
-    r.make_right();
-    return r;
+    return -*this - 1;
 }
 
 big_integer &big_integer::operator++() {
@@ -649,4 +616,10 @@ bool operator<=(big_integer const & a, big_integer const & b) {
 
 bool operator>=(big_integer const & a, big_integer const & b) {
     return (b <= a);
+}
+
+void myt(big_integer &a) {
+    for (size_t i = 0; i < a.data.size(); ++i) {
+        a.data[i] = ~a.data[i];
+    }
 }
