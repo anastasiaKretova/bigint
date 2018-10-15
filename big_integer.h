@@ -11,7 +11,6 @@ class big_integer {
 private:
     void make_right();
     void shiftCells(int rhs);
-    std::string BASE_to_string(ui, bool) const;
     ui getEmptyCell() const;
 
 public:
@@ -55,11 +54,10 @@ public:
     std::string to_string() const;
     friend std::pair<big_integer, ui> sDiv(big_integer const &a, ui const &b);
     friend void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur);
-    friend big_integer myt(big_integer const &a);
+    friend void myt(big_integer &a);
     //friend big_integer operator*(big_integer const &a, ui const &b);
 
 private:
-    const int BASE_Degree[10] = { 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000, 1000000000 };
     std::vector<ui> data;
     bool sign;
 
@@ -90,6 +88,6 @@ std::ostream &operator<<(std::ostream &s, big_integer const &a);
 std::istream &operator>>(std::istream &s, big_integer &a);
 std::pair<big_integer, ui> sDiv(big_integer const &a, ui const &b);
 void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur);
-big_integer myt(big_integer const &a);
+void myt(big_integer &a);
 
 //big_integer operator*(big_integer const &a, ui const &b);
