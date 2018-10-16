@@ -24,7 +24,7 @@ public:
 
 
     big_integer &operator=(big_integer const &other);
-    big_integer &operator*=(ui const &rhs);
+    //big_integer &operator*=(ui const &rhs);
     big_integer &operator-=(big_integer const &rhs);
     big_integer &operator+=(big_integer const &rhs);
     big_integer &operator*=(big_integer const &rhs);
@@ -52,6 +52,7 @@ public:
     friend bool operator>=(big_integer const& a, big_integer const& b);
 
     std::string to_string() const;
+    friend big_integer sMul(big_integer &a, ui const &b);
     friend std::pair<big_integer, ui> sDiv(big_integer const &a, ui const &b);
     friend void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur);
     friend void myt(big_integer &a);
@@ -86,6 +87,7 @@ bool operator>=(big_integer const &a, big_integer const &b);
 std::string to_string(big_integer const &a);
 std::ostream &operator<<(std::ostream &s, big_integer const &a);
 std::istream &operator>>(std::istream &s, big_integer &a);
+big_integer sMul(big_integer &a, ui const &b);
 std::pair<big_integer, ui> sDiv(big_integer const &a, ui const &b);
 void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur);
 void myt(big_integer &a);
