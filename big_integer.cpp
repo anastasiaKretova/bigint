@@ -82,7 +82,7 @@ std::string big_integer::to_string() const {
 big_integer::big_integer(std::string const &str) {
     std::string s(str);
     *this = 0;
-    if (s == "0") {
+    if (s == "0" || s == "-0") {
         return;
     }
     bool my_sign;
@@ -93,7 +93,7 @@ big_integer::big_integer(std::string const &str) {
         my_sign = false;
     }
     for (int i = 0; i < s.length(); ++i) {
-        *this *= (ui)10;
+        *this = sMul(*this, (ui)10);
         *this += (int)(s[i] - '0');
     }
     sign = my_sign;
@@ -122,21 +122,6 @@ void big_integer::make_right() {
     size_t i = data.size() - 1;
     while (i > 0 && data[i] == 0) i--;
     data.resize(i + 1);
-}
-
-big_integer& big_integer::operator*=(ui const &b) {
-    big_integer res;
-    res.sign = this->sign;
-    res.data.resize(data.size() + 1);
-    unsigned c = 0;
-    for (size_t i = 0; i < data.size(); ++i) {
-        res.data[i] = (data[i] * b + c) ;
-        c = ((unsigned long long)data[i] * b + c) / big_integer::kBase;
-    }
-    res.data[data.size()] = c;
-    res.make_right();
-    *this = res;
-    return *this;
 }
 
 big_integer& big_integer::operator+=(big_integer const &rhs) {
@@ -199,6 +184,35 @@ big_integer &big_integer::operator-=(big_integer const &rhs) {
     return *this;
 }
 
+big_integer sMul(big_integer &a, ui const &b) {
+    big_integer res;
+    res.sign = a.sign;
+    res.data.resize(a.data.size() + 1);
+    ull c = 0;
+    for (size_t i = 0; i < a.data.size(); ++i) {
+        res.data[i] = (a.data[i] * b + c) ;
+        c = ((unsigned long long)a.data[i] * b + c) / big_integer::kBase;
+    }
+    res.data[a.data.size()] = c;
+    res.make_right();
+    //a = res;
+    return res;
+}
+
+//big_integer& big_integer::operator*=(ui const &b) {
+//    big_integer res;
+//    res.sign = this->sign;
+//    res.data.resize(data.size() + 1);
+//    ull c = 0;
+//    for (size_t i = 0; i < data.size(); ++i) {
+//        res.data[i] = (data[i] * b + c) ;
+//        c = ((unsigned long long)data[i] * b + c) / big_integer::kBase;
+//    }
+//    res.data[data.size()] = c;
+//    res.make_right();
+//    *this = res;
+//    return *this;
+//}
 
 big_integer &big_integer::operator*=(big_integer const &rhs) {
     big_integer res;
@@ -219,7 +233,6 @@ big_integer &big_integer::operator*=(big_integer const &rhs) {
     *this = res;
     return  *this;
 }
-
 
 std::pair<big_integer, ui> sDiv(big_integer const & a, ui const & b) {
     big_integer res;
@@ -256,7 +269,6 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
     }
 
     //частные случаи
-
     if (a.data.size() < b.data.size()) {
         res = 0;
         cur = a;
@@ -269,28 +281,27 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
         return;
     }
 
-    // объявление переменных
     big_integer u = a;
 
-    long n = b.data.size(), m = u.data.size() - b.data.size();
+    long n = b.data.size(), m = a.data.size() + 1 - b.data.size();
     long uJ = 0, vJ = 0, i = 0;
     ull temp1;
-    long temp2, temp = 0;
-    long qGuess, r;                 //догадка для частного и его остаток
-    long borrow, carry;             //переносы
-
+    long long temp2 = 0, temp = 0;
+    long long qGuess = 0, r = 0;                 //догадка для частного и его остаток
+    long long borrow = 0, carry = 0;             //переносы
 
     auto scale = big_integer::kBase / (b.data[n - 1] + 1); //нормализация
     if (scale > 1) {
-        u *= scale;
-        b *= scale;
+        u = sMul(u, scale);
+        b = sMul(b, scale);
     }
-    u.data.resize(u.data.size() + 1);
+    u.data.resize(a.data.size() + 10);
     res.data.resize(m + 1);
     //uJ - тек цифра U
     //vJ - тек сдвиг B относ U(при вычитании), инд очередной цифры частного
-    for (vJ = m, uJ = n + vJ - 1; vJ >= 0; --vJ, --uJ) {
+    for (vJ = m, uJ = n + vJ; vJ >= 0; --vJ, --uJ) {
 
+        u.data.resize(a.data.size() + 10);
         qGuess = (u.data[uJ] * big_integer::kBase + u.data[uJ - 1]) / b.data[n - 1];
         r = (u.data[uJ] * big_integer::kBase + u.data[uJ - 1]) % b.data[n - 1];
 
@@ -308,7 +319,6 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
         }
         //U - B * qGuess начиная с vJ+i позиции
         carry = 0, borrow = 0;
-        ui *uShift = &u.data[vJ];
         for (i = 0; i < n; i++) {
 
             temp1 = 1ull * b.data[i] * qGuess + carry;
@@ -352,11 +362,9 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
             u.data[i + vJ] = u.data[i + vJ] + carry - big_integer::kBase;
         }
         u.make_right();
-        //u.data.resize(u.data.size() + 1);
 
     }
     res.make_right();
-    //res.data.resize(res.data.size() + 1);
     if (scale > 1) {
         std::pair<big_integer, ui> p = sDiv(b, scale);
         b = p.first;
@@ -364,6 +372,7 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
         cur = p.first;
     }
     else cur = u;
+    cur.make_right();
 }
 
 big_integer &big_integer::operator/=(big_integer const &rhs) {
@@ -446,19 +455,34 @@ big_integer &big_integer::operator<<=(int rhs) {
     if (rhs < 0) {
         return *this >>= -rhs;
     }
+    bool my_sign = sign;
+    if (my_sign) {
+        sign = false;
+        myt(*this);
+        *this += 1;
+    }
     int auxShift = rhs / kLogBase;
     if (auxShift) {
         shiftCells(auxShift);
     }
     auxShift = rhs - auxShift * kLogBase;
     if (auxShift) {
-        data.push_back(getEmptyCell());
+        if (my_sign) {
+            data.push_back((ui)(kBase - 1));
+        } else {
+            data.push_back(getEmptyCell());
+        }
         for (size_t i = data.size(); i > 0; --i) {
             if (i != data.size()) {
-                data[i] += data[i - 1] >> (kLogBase - auxShift);
+                data[i] += (data[i - 1] >> (kLogBase - auxShift)) ;
             }
             data[i - 1] <<= auxShift;
         }
+    }
+    if (my_sign) {
+        myt(*this);
+        *this += 1;
+        sign = true;
     }
     make_right();
     return *this;
