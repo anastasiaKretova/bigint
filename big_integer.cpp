@@ -16,7 +16,8 @@ big_integer::big_integer(big_integer const &other) {
 
 big_integer::big_integer(ui a) {
     sign = false;
-    data.resize(0);
+    //data.resize(0);
+    data.clear();
     if (a == 0) {
         data.push_back(0);
     } else {
@@ -26,7 +27,8 @@ big_integer::big_integer(ui a) {
 
 big_integer::big_integer(int a) {
     sign = false;
-    data.resize(0);
+    //data.resize(0);
+    data.clear();
     if (a > 0) {
         data.push_back((unsigned)a);
     } if (a == 0) {
@@ -42,7 +44,8 @@ big_integer::big_integer(int a) {
     }
 }
 
-big_integer::big_integer(std::vector<ui> const &obj, bool _sign) {
+//big_integer::big_integer(std::vector<ui> const &obj, bool _sign) {
+big_integer::big_integer(my_vector const &obj, bool _sign) {
     data = obj;
     sign = _sign;
     if (obj.empty())
@@ -65,7 +68,7 @@ std::string big_integer::to_string() const {
     big_integer a = *this;
     a.sign = false;
     while (a > 0) {
-        std::pair<big_integer, ui> p = sDiv(a, 10);
+        std::pair<big_integer, ui> p = short_div(a, 10);
         a = p.first;
         s = std::to_string(p.second) + s;
     }
@@ -92,8 +95,8 @@ big_integer::big_integer(std::string const &str) {
     } else {
         my_sign = false;
     }
-    for (int i = 0; i < s.length(); ++i) {
-        *this = sMul(*this, (ui)10);
+    for (size_t i = 0; i < s.length(); ++i) {
+        *this = short_mul(*this, (ui)10);
         *this += (int)(s[i] - '0');
     }
     sign = my_sign;
@@ -135,8 +138,17 @@ big_integer& big_integer::operator+=(big_integer const &rhs) {
     }
     size_t len = std::max(data.size(), rhs.data.size()) + 1;
     size_t oldSize = data.size();
+
     data.resize(len);
-    std::fill(data.begin() + oldSize, data.begin() + len, 0);
+
+
+
+    for (size_t j = oldSize; j < len; ++j) {
+        data[j] = 0;
+    }
+    //std::fill(data.begin() + oldSize, data.begin() + len, 0);
+
+
     bool c = false;
     ui b = 0;
     for (size_t i = 0; i < len; i++) {
@@ -151,7 +163,7 @@ big_integer& big_integer::operator+=(big_integer const &rhs) {
 
 big_integer &big_integer::operator-=(big_integer const &rhs) {
     if (*this == rhs) {
-        data.resize(0);
+        data.clear();
         data.push_back(0);
         sign = false;
         return *this;
@@ -159,7 +171,7 @@ big_integer &big_integer::operator-=(big_integer const &rhs) {
     if (sign != rhs.sign) {
         return *this += -rhs;
     }
-    if (!sign && *this < rhs || sign && *this > rhs) {
+    if ((!sign && *this < rhs) || (sign && *this > rhs)) {
         return *this = -(rhs - *this);
     }
     long long temp = 0;
@@ -179,12 +191,11 @@ big_integer &big_integer::operator-=(big_integer const &rhs) {
             cur += big_integer::kBase;
         data[i] = cur;
     }
-    //if (temp) data[rhs.data.size() - 1] -= temp;
     make_right();
     return *this;
 }
 
-big_integer sMul(big_integer &a, ui const &b) {
+big_integer short_mul(big_integer &a, ui const &b) {
     big_integer res;
     res.sign = a.sign;
     res.data.resize(a.data.size() + 1);
@@ -199,28 +210,13 @@ big_integer sMul(big_integer &a, ui const &b) {
     return res;
 }
 
-//big_integer& big_integer::operator*=(ui const &b) {
-//    big_integer res;
-//    res.sign = this->sign;
-//    res.data.resize(data.size() + 1);
-//    ull c = 0;
-//    for (size_t i = 0; i < data.size(); ++i) {
-//        res.data[i] = (data[i] * b + c) ;
-//        c = ((unsigned long long)data[i] * b + c) / big_integer::kBase;
-//    }
-//    res.data[data.size()] = c;
-//    res.make_right();
-//    *this = res;
-//    return *this;
-//}
-
 big_integer &big_integer::operator*=(big_integer const &rhs) {
     big_integer res;
     unsigned int c;
     res.data.resize(data.size() + rhs.data.size() + 1);
     for (size_t i = 0; i < data.size(); ++i) {
         c = 0;
-        for (int j = 0; j < rhs.data.size(); j++) {
+        for (size_t j = 0; j < rhs.data.size(); j++) {
             ull temp = 1ull * res.data[i + j] + 1ull * data[i] * rhs.data[j] + c;
             res.data[i + j] = temp;
             c = temp / kBase;
@@ -234,7 +230,7 @@ big_integer &big_integer::operator*=(big_integer const &rhs) {
     return  *this;
 }
 
-std::pair<big_integer, ui> sDiv(big_integer const & a, ui const & b) {
+std::pair<big_integer, ui> short_div(big_integer const & a, ui const & b) {
     big_integer res;
     res = a;
     long long cur = 0;
@@ -248,21 +244,21 @@ std::pair<big_integer, ui> sDiv(big_integer const & a, ui const & b) {
     return { res, cur };
 }
 
-void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur) {
+void my_div(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur) {
     if (a.sign && b.sign) {
         big_integer d = -b;
-        myDiv(-a, d, res, cur);
+        my_div(-a, d, res, cur);
         return;
     }
     if (a.sign) {
-        myDiv(-a, b, res, cur);
+        my_div(-a, b, res, cur);
         if (res == 0) cur.sign = true;
         else res.sign = true;
         return;
     }
     if (b.sign) {
         big_integer d = -b;
-        myDiv(a, d, res, cur);
+        my_div(a, d, res, cur);
         if (res == 0) cur.sign = true;
         else res.sign = true;
         return;
@@ -275,7 +271,7 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
         return;
     }
     if (b.data.size() == 1) {
-        std::pair<big_integer, ui> p = sDiv(a, b.data[0]);
+        std::pair<big_integer, ui> p = short_div(a, b.data[0]);
         res = p.first;
         cur.data[0] = p.second;
         return;
@@ -292,8 +288,8 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
 
     auto scale = big_integer::kBase / (b.data[n - 1] + 1); //нормализация
     if (scale > 1) {
-        u = sMul(u, scale);
-        b = sMul(b, scale);
+        u = short_mul(u, scale);
+        b = short_mul(b, scale);
     }
     u.data.resize(a.data.size() + 10);
     res.data.resize(m + 1);
@@ -307,7 +303,7 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
 
         while (r < big_integer::kBase) {
 
-            temp2 = b.data[n - 2] * qGuess;
+            temp2 = 1ll * b.data[n - 2] * qGuess;
             temp1 = r * big_integer::kBase + u.data[uJ - 2];
 
             if ((temp2 > temp1) || (qGuess == big_integer::kBase)) {
@@ -366,9 +362,9 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
     }
     res.make_right();
     if (scale > 1) {
-        std::pair<big_integer, ui> p = sDiv(b, scale);
+        std::pair<big_integer, ui> p = short_div(b, scale);
         b = p.first;
-        p = sDiv(u, scale);
+        p = short_div(u, scale);
         cur = p.first;
     }
     else cur = u;
@@ -377,7 +373,7 @@ void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &
 
 big_integer &big_integer::operator/=(big_integer const &rhs) {
     big_integer b = rhs, res, cur;
-    myDiv(*this, b, res, cur);
+    my_div(*this, b, res, cur);
     *this = res;
     return *this;
 }
@@ -391,13 +387,13 @@ big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std:
     size_t len = std::max(data.size(), rhs.data.size());
     if (sign) {
         sign = false;
-        myt(*this);
+        my_t(*this);
         *this += 1;
     }
     big_integer c_rhs = rhs;
     if (c_rhs.sign) {
         c_rhs.sign = false;
-        myt(c_rhs);
+        my_t(c_rhs);
         c_rhs += 1;
     }
     ui emptyCell = getEmptyCell();
@@ -411,7 +407,7 @@ big_integer &big_integer::apply_bit_operation(big_integer const &rhs, const std:
                        i < c_rhs.data.size() ? c_rhs.data[i] : c_rhs.getEmptyCell());
     }
     if (!data.empty() && (data.back() & ((ui) 1 << (kLogBase - 1)))) {
-        myt(*this);
+        my_t(*this);
         *this += 1;
         sign = true;
     }
@@ -458,7 +454,7 @@ big_integer &big_integer::operator<<=(int rhs) {
     bool my_sign = sign;
     if (my_sign) {
         sign = false;
-        myt(*this);
+        my_t(*this);
         *this += 1;
     }
     int auxShift = rhs / kLogBase;
@@ -480,7 +476,7 @@ big_integer &big_integer::operator<<=(int rhs) {
         }
     }
     if (my_sign) {
-        myt(*this);
+        my_t(*this);
         *this += 1;
         sign = true;
     }
@@ -495,7 +491,7 @@ big_integer &big_integer::operator>>=(int rhs) {
     bool my_sign = sign;
     if (my_sign) {
         sign = false;
-        myt(*this);
+        my_t(*this);
         *this += 1;
     }
     int auxShift = rhs / kLogBase;
@@ -514,10 +510,10 @@ big_integer &big_integer::operator>>=(int rhs) {
             }
             data[i] >>= auxShift;
         }
-        data.back() += cur << (kLogBase - auxShift);
+        data[data.size() - 1] += cur << (kLogBase - auxShift);
     }
     if (my_sign) {
-        myt(*this);
+        my_t(*this);
         *this += 1;
         sign = true;
     }
@@ -642,7 +638,7 @@ bool operator>=(big_integer const & a, big_integer const & b) {
     return (b <= a);
 }
 
-void myt(big_integer &a) {
+void my_t(big_integer &a) {
     for (size_t i = 0; i < a.data.size(); ++i) {
         a.data[i] = ~a.data[i];
     }
