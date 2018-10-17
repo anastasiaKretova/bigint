@@ -2,6 +2,7 @@
 #include <functional>
 #include <string>
 #include <vector>
+#include "vector.h"
 
 typedef unsigned int ui;
 typedef unsigned long long ull;
@@ -16,7 +17,8 @@ private:
 public:
     big_integer();
     big_integer(big_integer const &other);
-    big_integer(std::vector<ui> const &obj, bool _sign);
+    //big_integer(std::vector<ui> const &obj, bool _sign);
+    big_integer(my_vector const &obj, bool _sign);
     big_integer(ui a);
     big_integer(int a);
     explicit big_integer(std::string const &str);
@@ -52,14 +54,15 @@ public:
     friend bool operator>=(big_integer const& a, big_integer const& b);
 
     std::string to_string() const;
-    friend big_integer sMul(big_integer &a, ui const &b);
-    friend std::pair<big_integer, ui> sDiv(big_integer const &a, ui const &b);
-    friend void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur);
-    friend void myt(big_integer &a);
+    friend big_integer short_mul(big_integer &a, ui const &b);
+    friend std::pair<big_integer, ui> short_div(big_integer const &a, ui const &b);
+    friend void my_div(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur);
+    friend void my_t(big_integer &a);
     //friend big_integer operator*(big_integer const &a, ui const &b);
 
 private:
-    std::vector<ui> data;
+    my_vector data;
+    //std::vector<ui> data;
     bool sign;
 
     static const ui kLogBase;
@@ -87,9 +90,9 @@ bool operator>=(big_integer const &a, big_integer const &b);
 std::string to_string(big_integer const &a);
 std::ostream &operator<<(std::ostream &s, big_integer const &a);
 std::istream &operator>>(std::istream &s, big_integer &a);
-big_integer sMul(big_integer &a, ui const &b);
-std::pair<big_integer, ui> sDiv(big_integer const &a, ui const &b);
-void myDiv(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur);
-void myt(big_integer &a);
+big_integer short_mul(big_integer &a, ui const &b);
+std::pair<big_integer, ui> short_div(big_integer const &a, ui const &b);
+void my_div(big_integer const &a, big_integer &b, big_integer &res, big_integer &cur);
+void my_t(big_integer &a);
 
 //big_integer operator*(big_integer const &a, ui const &b);
